@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<!-- Required meta tags -->
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+		<!--Import Google Icon Font-->
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+		<!-- Compiled and minified CSS -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+
+		<style>
+			.mt-2 {
+				margin-top: 2rem;
+			}
+
+			.p-2 {
+				padding: 2rem !important;
+			}
+
+			form {
+				padding: 1rem;
+			}
+
+			form button[type="submit"] {
+				color: #fff;
+			}
+
+			.chat-section {
+				padding: 1rem;
+				max-height: 270px;
+				/* overflow-y: scroll; */
+				overflow: auto;
+			}
+
+			h3 {
+				border-bottom: 1px solid #000;
+				padding-bottom: 1rem;
+			}
+
+			.chat-section h5 {
+				margin: 1rem;
+			}
+
+			.user-sender {
+				display: flex;
+				justify-content: flex-end;
+			}
+			.chat-section h5 .user {
+				font-weight: bold;
+			}
+
+			.chat-section h5 .message {
+				font-style: italic;
+			}
+		</style>
+
+		<!-- Compiled and minified JavaScript -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+		<script
+			src="https://cdn.socket.io/3.1.3/socket.io.min.js"
+			integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh"
+			crossorigin="anonymous"
+		></script>
+
+		<script type="text/javascript">
+			$(document).ready(function () {
+				let modal = $(".modal").modal();
+				let chat_section = document.querySelector(".chat-section");
+				modal.modal("open");
+
+				const SOCKET = io();
+				SOCKET.emit("new_connection", { msg: "load messages" });
+
+				SOCKET.on("load_messages", function (data) {
+					let sender = $(".message-of-user").val();
+					let html = ``;
+					for (let i = 0; i < data.messages.length; i++) {
+						html += `<h5 class="${sender == data.messages[i].name ? "user-sender" : ""}"><span class="user">${
+							data.messages[i].name
+						}</span>: <span class="message">${data.messages[i].message}</span></h5>`;
+					}
+					$(".chat-section").html(html);
+					chat_section.scrollTop = chat_section.scrollHeight;
+				});
+
+				$(".add-user-to-chat-room").submit(function () {
+					$.post($(this).attr("action"), $(this).serialize(), function (res) {
+						console.log(res.msg);
+						$(".message-of-user").val(res.name);
+						SOCKET.emit("add_user", { user: res.name });
+					});
+					return false;
+				});
+
+				$(".post-message").submit(function () {
+					$.post($(this).attr("action"), $(this).serialize(), function (res) {
+						console.log(res);
+						// $(".message-of-user").val(res.name);
+						// SOCKET.emit("add_user", { user: res.name });
+						SOCKET.emit("add_message", { message: res.message_details });
+					});
+
+					$(this).trigger("reset");
+					return false;
+				});
+			});
+		</script>
+
+		<title>Group Chat</title>
+	</head>
+	<body>
+		<nav class="light-blue darken-4">
+			<div class="container">
+				<div class="nav-wrapper">
+					<a href="#" class="brand-logo">Group Chat</a>
+				</div>
+			</div>
+		</nav>
+
+		<div class="container">
+			<div class="row">
+				<div class="col s12">
+					<div id="modal1" class="modal">
+						<form action="add-user-to-chat-room" class="add-user-to-chat-room" method="POST">
+							<div class="modal-content">
+								<h4 class="">Please enter your name:</h4>
+								<div class="row">
+									<div class="input-field col s12">
+										<input id="name" type="text" name="name" />
+										<label for="name">Name</label>
+									</div>
+								</div>
+							</div>
+							<div class="modal-footer">
+								<button type="submit" class="modal-close waves-effect waves-green btn-flat light-blue darken-4">
+									Enter chatroom
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="col s5">
+					<h3>Conversation Board</h3>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col s12 card">
+					<div class="chat-section"></div>
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="col s12 card">
+					<form action="post-message" class="post-message" method="POST">
+						<div class="row">
+							<div class="input-field col s12">
+								<input id="message" type="text" name="message" />
+								<input type="hidden" class="message-of-user" name="from" />
+								<label for="message">Message</label>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
